@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Panel · Organiz{% endblock %}
+
+{% block content %}
+<!-- Resumen: ingresos, gastos y balance -->
+<section class="cards">
+  <div class="card card--income">
+    <span class="card__label">Ingresos</span>
+    <span class="card__value" id="total-income">—</span>
+  </div>
+  <div class="card card--expense">
+    <span class="card__label">Gastos</span>
+    <span class="card__value" id="total-expense">—</span>
+  </div>
+  <div class="card card--balance">
+    <span class="card__label">Balance</span>
+    <span class="card__value" id="balance">—</span>
+  </div>
+</section>
+
+<div class="layout">
+  <!-- Formulario para añadir un movimiento -->
+  <section class="panel">
+    <h2 class="panel__title">Añadir movimiento</h2>
+    <form id="tx-form" class="form">
+      <div class="form__row toggle">
+        <label class="toggle__option">
+          <input type="radio" name="kind" value="income" checked>
+          <span>Ingreso</span>
+        </label>
+        <label class="toggle__option">
+          <input type="radio" name="kind" value="expense">
+          <span>Gasto</span>
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Importe</span>
+        <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+      </label>
+
+      <label class="field">
+        <span>Categoría</span>
+        <select name="category_id" id="category-select"></select>
+      </label>
+
+      <label class="field">
+        <span>Descripción</span>
+        <input type="text" name="description" placeholder="Opcional" maxlength="200">
+      </label>
+
+      <label class="field">
+        <span>Fecha</span>
+        <input type="date" name="date" id="date-input" required>
+      </label>
+
+      <button type="submit" class="btn btn--primary">Guardar</button>
+      <p class="form__error" id="form-error" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- Lista de movimientos -->
+  <section class="panel">
+    <h2 class="panel__title">Movimientos</h2>
+    <div class="table-wrap">
+      <table class="table" id="tx-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th class="num">Importe</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tx-body">
+          <tr><td colspan="5" class="empty">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
