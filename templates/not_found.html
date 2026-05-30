@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}No encontrado · Organiz{% endblock %}
+
+{% block content %}
+<section class="panel" style="text-align:center; margin-top:40px;">
+  <h2 class="panel__title">No encontramos esa página</h2>
+  <p class="empty">El proyecto o recurso que buscas no existe.</p>
+  <p><a class="nav__link" href="{{ url_for('projects_page') }}">Ir a mis proyectos</a></p>
+</section>
+{% endblock %}

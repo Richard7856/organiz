@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · Organiz{% endblock %}
+
+{% block content %}
+<!-- data-project-id lo lee el JS para saber qué proyecto cargar -->
+<div id="project-root" data-project-id="{{ project.id }}" data-status="{{ project.status }}">
+  <p class="breadcrumb">
+    <a href="{{ url_for('projects_page') }}">← Volver a proyectos</a>
+  </p>
+
+  <section class="panel project-header">
+    <div class="project-header__top">
+      <h2 class="panel__title" id="project-name">{{ project.name }}</h2>
+      <div class="project-header__actions">
+        <select id="status-select" class="status-pill" title="Cambiar estado">
+          <option value="active">En curso</option>
+          <option value="paused">En pausa</option>
+          <option value="completed">Terminado</option>
+        </select>
+        <button class="btn-delete" id="delete-project" title="Eliminar proyecto">🗑</button>
+      </div>
+    </div>
+    {% if project.description %}
+    <p class="project-header__desc">{{ project.description }}</p>
+    {% endif %}
+    <div class="progress-bar">
+      <div class="progress-bar__fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+    <span class="progress-bar__label" id="progress-label">Sin avances registrados</span>
+  </section>
+
+  <div class="layout">
+    <!-- Registrar un avance -->
+    <section class="panel">
+      <h2 class="panel__title">Registrar avance</h2>
+      <form id="progress-form" class="form">
+        <label class="field">
+          <span>Nota del avance</span>
+          <textarea name="note" rows="3" placeholder="¿Qué avanzaste?" maxlength="500"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Progreso acumulado (%)</span>
+          <input type="number" name="progress" min="0" max="100" step="1" placeholder="Opcional">
+        </label>
+
+        <label class="field">
+          <span>Fecha</span>
+          <input type="date" name="date" id="date-input" required>
+        </label>
+
+        <button type="submit" class="btn btn--primary">Guardar avance</button>
+        <p class="form__error" id="form-error" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Línea de tiempo de avances -->
+    <section class="panel">
+      <h2 class="panel__title">Avances</h2>
+      <div id="progress-list">
+        <p class="empty">Cargando…</p>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/project_detail.js') }}"></script>
+{% endblock %}

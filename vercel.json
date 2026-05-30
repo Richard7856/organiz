@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "app.py",
+          "models.py",
+          "database.py",
+          "schema.sql",
+          "templates/**",
+          "static/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.py" }
+  ]
+}

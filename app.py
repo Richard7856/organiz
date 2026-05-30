@@ -27,6 +27,21 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/projects")
+def projects_page():
+    """Listado de proyectos y formulario para crear uno (Fase 2)."""
+    return render_template("projects.html")
+
+
+@app.route("/projects/<int:project_id>")
+def project_detail_page(project_id):
+    """Detalle de un proyecto con sus avances (Fase 2)."""
+    project = models.get_project(project_id)
+    if project is None:
+        return render_template("not_found.html"), 404
+    return render_template("project_detail.html", project=project)
+
+
 # --------------------------------------------------------------------------- #
 # API JSON
 # --------------------------------------------------------------------------- #
@@ -87,6 +102,81 @@ def api_create_category():
 @app.get("/api/expenses-by-category")
 def api_expenses_by_category():
     return jsonify(models.get_expense_by_category())
+
+
+# --------------------------------------------------------------------------- #
+# API JSON — Fase 2: proyectos y avances
+# --------------------------------------------------------------------------- #
+@app.get("/api/projects")
+def api_list_projects():
+    return jsonify(models.list_projects())
+
+
+@app.post("/api/projects")
+def api_create_project():
+    data = request.get_json(silent=True) or {}
+    try:
+        project_id = models.create_project(
+            name=data.get("name"),
+            description=data.get("description", ""),
+            status=data.get("status", "active"),
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"id": project_id}), 201
+
+
+@app.patch("/api/projects/<int:project_id>")
+def api_update_project(project_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        updated = models.update_project(
+            project_id,
+            name=data.get("name"),
+            description=data.get("description"),
+            status=data.get("status"),
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if not updated:
+        return jsonify({"error": "No se encontró el proyecto."}), 404
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/projects/<int:project_id>")
+def api_delete_project(project_id):
+    if not models.delete_project(project_id):
+        return jsonify({"error": "No se encontró el proyecto."}), 404
+    return jsonify({"ok": True})
+
+
+@app.get("/api/projects/<int:project_id>/progress")
+def api_list_progress(project_id):
+    if models.get_project(project_id) is None:
+        return jsonify({"error": "No se encontró el proyecto."}), 404
+    return jsonify(models.list_progress(project_id))
+
+
+@app.post("/api/projects/<int:project_id>/progress")
+def api_create_progress(project_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        update_id = models.create_progress(
+            project_id,
+            note=data.get("note", ""),
+            date=data.get("date"),
+            progress=data.get("progress"),
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"id": update_id}), 201
+
+
+@app.delete("/api/progress/<int:progress_id>")
+def api_delete_progress(progress_id):
+    if not models.delete_progress(progress_id):
+        return jsonify({"error": "No se encontró el avance."}), 404
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

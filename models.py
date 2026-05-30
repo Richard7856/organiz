@@ -174,3 +174,188 @@ def get_expense_by_category():
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+
+# --------------------------------------------------------------------------- #
+# Fase 2: proyectos
+# --------------------------------------------------------------------------- #
+PROJECT_STATUSES = ("active", "paused", "completed")
+
+
+def list_projects():
+    """Lista los proyectos con su número de avances y su progreso más reciente.
+
+    El progreso de un proyecto es el porcentaje del avance más reciente que
+    tenga un valor; así la lista refleja "cómo va" sin cálculos en el frontend.
+    """
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+                p.*,
+                (SELECT COUNT(*) FROM progress_updates u
+                     WHERE u.project_id = p.id) AS updates_count,
+                (SELECT u.progress FROM progress_updates u
+                     WHERE u.project_id = p.id AND u.progress IS NOT NULL
+                     ORDER BY u.date DESC, u.id DESC LIMIT 1) AS latest_progress
+            FROM projects p
+            ORDER BY p.created_at DESC, p.id DESC
+            """
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_project(project_id):
+    """Devuelve un proyecto por su id, o None si no existe."""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def create_project(name, description="", status="active"):
+    """Crea un proyecto y devuelve su id. Lanza ValueError si los datos fallan."""
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("El nombre del proyecto no puede estar vacío.")
+    if status not in PROJECT_STATUSES:
+        raise ValueError("Estado de proyecto no válido.")
+
+    description = (description or "").strip()
+
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            "INSERT INTO projects (name, description, status) VALUES (?, ?, ?)",
+            (name, description, status),
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def update_project(project_id, name=None, description=None, status=None):
+    """Actualiza los campos indicados de un proyecto. Devuelve True si existía."""
+    fields = []
+    params = []
+    if name is not None:
+        name = name.strip()
+        if not name:
+            raise ValueError("El nombre del proyecto no puede estar vacío.")
+        fields.append("name = ?")
+        params.append(name)
+    if description is not None:
+        fields.append("description = ?")
+        params.append(description.strip())
+    if status is not None:
+        if status not in PROJECT_STATUSES:
+            raise ValueError("Estado de proyecto no válido.")
+        fields.append("status = ?")
+        params.append(status)
+
+    if not fields:
+        return True  # Nada que actualizar.
+
+    params.append(project_id)
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            f"UPDATE projects SET {', '.join(fields)} WHERE id = ?", params
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_project(project_id):
+    """Borra un proyecto y, en cascada, todos sus avances."""
+    conn = get_db()
+    try:
+        cur = conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+# --------------------------------------------------------------------------- #
+# Fase 2: avances de un proyecto
+# --------------------------------------------------------------------------- #
+def list_progress(project_id):
+    """Lista los avances de un proyecto, del más reciente al más antiguo."""
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            """
+            SELECT * FROM progress_updates
+            WHERE project_id = ?
+            ORDER BY date DESC, id DESC
+            """,
+            (project_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def create_progress(project_id, note, date, progress=None):
+    """Registra un avance en un proyecto y devuelve su id.
+
+    Valida que el proyecto exista y que el porcentaje (si se da) esté entre
+    0 y 100.
+    """
+    if get_project(project_id) is None:
+        raise ValueError("El proyecto no existe.")
+
+    note = (note or "").strip()
+    date = (date or "").strip()
+    if not date:
+        raise ValueError("La fecha es obligatoria.")
+    if not note and progress is None:
+        raise ValueError("Escribe una nota o indica un porcentaje de avance.")
+
+    if progress is not None and progress != "":
+        try:
+            progress = int(progress)
+        except (TypeError, ValueError):
+            raise ValueError("El porcentaje debe ser un número entero.")
+        if not 0 <= progress <= 100:
+            raise ValueError("El porcentaje debe estar entre 0 y 100.")
+    else:
+        progress = None
+
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            """
+            INSERT INTO progress_updates (project_id, note, progress, date)
+            VALUES (?, ?, ?, ?)
+            """,
+            (project_id, note, progress, date),
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def delete_progress(progress_id):
+    """Borra un avance concreto. Devuelve True si existía."""
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            "DELETE FROM progress_updates WHERE id = ?", (progress_id,)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()

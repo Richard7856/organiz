@@ -11,8 +11,21 @@ import sqlite3
 
 # La base de datos vive junto al código, en organiz.db. Se puede sobrescribir
 # con la variable de entorno ORGANIZ_DB (útil para pruebas).
+#
+# En Vercel (serverless) el directorio del código es de solo lectura: el único
+# sitio donde se puede escribir es /tmp. Por eso, si detectamos ese entorno,
+# usamos /tmp. OJO: en serverless ese archivo es efímero (se pierde entre
+# despliegues y al "dormirse" la función). Para datos persistentes en la nube
+# conviene una base de datos gestionada; ver README.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("ORGANIZ_DB", os.path.join(BASE_DIR, "organiz.db"))
+
+if os.environ.get("ORGANIZ_DB"):
+    DB_PATH = os.environ["ORGANIZ_DB"]
+elif os.environ.get("VERCEL"):
+    DB_PATH = "/tmp/organiz.db"
+else:
+    DB_PATH = os.path.join(BASE_DIR, "organiz.db")
+
 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 
 # Categorías que se crean la primera vez para que la app no arranque vacía.
